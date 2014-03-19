@@ -24,7 +24,7 @@ sudo su - postgres -c "~/analyze_new_cluster.sh"
 # Optionally, delete script
 sudo su - postgres -c "~/delete_old_cluster.sh"
 
-# Switch ports
+# Switch ports, :5432 for 9.3 and :5433 for 9.2
 sudo vim /etc/postgresql/9.2/main/postgresql.conf
 sudo vim /etc/postgresql/9.3/main/postgresql.conf
 

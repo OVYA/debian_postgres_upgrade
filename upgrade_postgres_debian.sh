@@ -1,5 +1,76 @@
 #!/bin/bash
 
+usage() {
+    echo "
+Usage: -from
+
+Available options:
+   -s N   Shift up the min temperature thresholds by N degrees
+          (positive for quieter, negative for cooler).
+          Max temperature thresholds are not affected.
+   -S N   Shift up the max temperature thresholds by N degrees
+          (positive for quieter, negative for cooler). DANGEROUS.
+   -t     Test mode
+   -q     Quiet mode
+   -d     Daemon mode, go into background (implies -q)
+   -l     Log to syslog
+   -k     Kill already-running daemon
+   -u     Tell already-running daemon that the system is being suspended
+   -p     Pid file location for daemon mode, default: $PID_FILE
+"
+    exit 1;
+}
+
+
+dependencyPkgFormats='postgresql-%s-asn1oid
+postgresql-%s-dbg
+postgresql-%s-debversion
+postgresql-%s-ip4r
+postgresql-%s-mimeo
+postgresql-%s-mysql-fdw
+postgresql-%s-orafce
+postgresql-%s-partman
+postgresql-%s-pgespresso
+postgresql-%s-pgextwlist
+postgresql-%s-pgfincore
+postgresql-%s-pgmemcache
+postgresql-%s-pgmp
+postgresql-%s-pgpool2
+postgresql-%s-pgq3
+postgresql-%s-pgrouting
+postgresql-%s-pgrouting-doc
+postgresql-%s-pgtap
+postgresql-%s-pllua
+postgresql-%s-plproxy
+postgresql-%s-plr
+postgresql-%s-plsh
+postgresql-%s-postgis
+postgresql-%s-postgis-scripts
+postgresql-%s-powa
+postgresql-%s-prefix
+postgresql-%s-preprepare
+postgresql-%s-prioritize
+postgresql-%s-python-multicorn
+postgresql-%s-python3-multicorn
+postgresql-%s-repack
+postgresql-%s-repmgr
+postgresql-%s-repmgr-dbg
+postgresql-%s-slony1
+postgresql-client-%s
+postgresql-contrib-%s
+postgresql-doc-%s
+postgresql-plperl-%s
+postgresql-plpython3-%s
+postgresql-pltcl-%s
+postgresql-server-dev-%s'
+
+psqlCurrentVersion=$(psql --version | sed 's/[^0-9.]//g' | awk -F "." '{print $1 "." $2}')
+psqlProg=$(dpkg -l | grep -E "^ii  postgresql-.*$psqlCurrentVersion.*" | awk -F"  " '{print $2}')
+# dpkg -l | grep -E '^ii +postgresql-.*?[0-9].*' | awk -F"  " '{print $2}' | awk '{ print length(), $0 | "sort -n" }' | awk -F" " '{print $2}'
+
+echo $psqlProg
+exit 0
+
 # Update and upgrade packages
 sudo apt-get update && sudo apt-get upgrade
 

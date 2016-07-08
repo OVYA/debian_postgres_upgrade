@@ -11,6 +11,29 @@ Available options:
     exit 1;
 }
 
+pressRet() {
+    printf "Press 'ENTER' to continue or 'CTRL+C' to exit "
+    sed -n q </dev/tty
+}
+
+function INFO {
+    echo -e "[\033[01;32m*\033[00m] ${1}"
+}
+
+function INFO_PLUS {
+    echo -e "[\033[01;32m*\033[00m] \033[01;32m${1}\033[00m"
+}
+
+
+function INFO_EXEC {
+    echo -e "[\033[01;36m=>\033[00m] ${1}"
+}
+
+function ECHO2 {
+    printf '%s\n' "$@"
+    echo
+}
+
 
 dependencyPkgFormats='postgresql-%s-asn1oid
 postgresql-%s-dbg
@@ -59,33 +82,57 @@ psqlCurrentPkgRegexp=$(echo "$dependencyPkgFormats" | sed -E ":a;N;$!ba;s/\n/.*|
 psqlCandidateVersion=$(apt-cache policy postgresql | grep -i 'candidate:' | sed -E 's/ *[a-zA-Z]+: *([0-9.]+).*/\1/g')
 psqlCandidatePkgRegexp=$(echo "$dependencyPkgFormats" | sed -E "s/:a;N;$!ba;s/\n/.*|/g;s/%s/${psqlCandidateVersion}/g")
 
-echo "* Current installed version of Postgresql : ${psqlCurrentVersion}"
-echo "* Candidate version of Postgresql :         ${psqlCandidateVersion}"
+INFO "Current installed version of Postgresql : ${psqlCurrentVersion}"
+INFO "Candidate version of Postgresql :         ${psqlCandidateVersion}"
 echo
 
-echo $psqlPkgRegexp
-psqlCurrentPkgs=$(dpkg-query -f '${binary:Package}\n' -W | grep -E "^postgresql-.*${psqlCurrentVersion}.*")
-psqlCandidatePkgRegexp=$(echo "$psqlCurrentPkgs" | sed -E ":a;N;\$!ba;s/\n/|/g;s/[0-9]/./g" | sed -E "s/^postgresql-.\..\|//;")
+# echo $psqlPkgRegexp
+psqlCurrentPkgs=$(dpkg-query -f '${binary:Package}\n' -W | grep -E "^postgresql-.*${psqlCurrentVersion}.*" | grep -Ev "^postgresql-${psqlCurrentVersion}\$")
+psqlCandidatePkgRegexp=$(echo "$psqlCurrentPkgs" | sed -E ":a;N;\$!ba;s/\n/|/g;s/[0-9]/./g")
 
 # echo "psqlCandidatePkgRegexp = $psqlCandidatePkgRegexp"
 
 psqlCandidatePkgs=$(apt-cache search "postgresql-.*${psqlCandidateVersion}.*" | sed -E 's/ - .*//g' | grep -E "${psqlCandidatePkgRegexp}")
+psqlCurrentPkgs="postgresql-${psqlCurrentVersion}
+${psqlCurrentPkgs}"
 psqlCandidatePkgs="postgresql-${psqlCandidateVersion}
 ${psqlCandidatePkgs}"
 
 
-echo -e "* The folowing package was detected to be upgraded : \n${psqlCurrentPkgs}\n"
-echo -e "* The folowing package shoud be installed : \n$psqlCandidatePkgs"
+INFO "The folowing package was detected to be upgraded :"
+ECHO2 "${psqlCurrentPkgs}"
 
-echo
-echo '=> Execute as root this command :'
+INFO "The folowing package shoud be installed :"
+ECHO2 "$psqlCandidatePkgs"
+
+
+INFO_EXEC 'Execute as root this command :'
 aptArg=$(echo ${psqlCandidatePkgs} | sed -E 's/\n/ /g')
-echo "apt-get install $aptArg"
+ECHO2 "sudo apt-get update && sudo apt-get upgrade && sudo apt-get install $aptArg"
+
+pressRet
+
+INFO_PLUS 'The following instructions are about "Hard upgrade" for Postgis support'
+INFO_PLUS 'More details at http://www.postgis.org/docs/postgis_installation.html#hard_upgrade'
+echo
+
+pressRet
 
 exit 0
 
-# Update and upgrade packages
-sudo apt-get update && sudo apt-get upgrade
+# cd /var/lib/postgresql/temp
+
+# for i in costespro_production costespro_staging; do
+#     f="/var/lib/postgresql/temp/${i}_$(date -I).bin"
+#     # pg_dump -Fc -b -v -f $f $i;
+#     # /usr/lib/postgresql/9.4/bin/createdb -p 5433 -O rcv --encoding=UTF8 $i -T template0
+#     # /usr/lib/postgresql/9.4/bin/psql -p 5433 -c "GRANT ALL PRIVILEGES ON DATABASE $i TO rcv WITH GRANT OPTION"
+#     # /usr/lib/postgresql/9.4/bin/psql -p 5433 -d $i -c "CREATE EXTENSION postgis;"
+#     # /usr/lib/postgresql/9.4/bin/psql -p 5433 -d $i -c "CREATE EXTENSION postgis_topology;"
+#     perl /usr/share/postgresql/9.4/contrib/postgis-2.1/postgis_restore.pl $f | \
+#         /usr/lib/postgresql/9.4/bin/psql -p 5433 $i 2> ${i}_err.txt
+# done
+
 
 # Install postgres 9.3
 sudo apt-get install postgresql-9.3 postgresql-server-dev-9.3 postgresql-contrib-9.3

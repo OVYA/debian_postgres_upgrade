@@ -28,7 +28,6 @@ usage() {
     exit 1
 }
 
-
 [ $# -lt 1 ] && {
     usage;
 }
@@ -67,9 +66,6 @@ databaseName="$1"
 su - postgres -c "pg_dump -v -F c -f $BACK $databaseName" && {
     echo "The database ${databaseName} was backuped in ${BACK}"
 }
-
-
-
 
 # Local variables:
 # coding: utf-8

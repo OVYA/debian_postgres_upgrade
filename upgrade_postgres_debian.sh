@@ -11,9 +11,10 @@ Available options:
     exit 1;
 }
 
-pressRet() {
+pause() {
     printf "Press 'ENTER' to continue or 'CTRL+C' to exit "
     sed -n q </dev/tty
+    echo
 }
 
 function INFO {
@@ -34,6 +35,7 @@ function ECHO2 {
     echo
 }
 
+CURRENT_DIR=$(dirname "$0")
 
 dependencyPkgFormats='postgresql-%s-asn1oid
 postgresql-%s-dbg
@@ -77,10 +79,23 @@ postgresql-plpython3-%s
 postgresql-pltcl-%s
 postgresql-server-dev-%s'
 
-psqlCurrentVersion=$(psql --version | sed 's/[^0-9.]//g' | awk -F "." '{print $1 "." $2}')
+whiptail --yesno 'This programme guide you to hard upgrade your Postgresql installation.
+It will NOT execute upgrade commands for you but describes the upgrade process.
+You can report any comment via <dev[at]ovya[dot]fr>.' 10 100 \
+         --yes-button 'Continue' \
+         --no-button 'Cancel' \
+         --title "About $0" 'Cancel'
+
+[ $? -eq 0 ] || {
+    # clear
+    INFO "Programm canceled"
+    exit 1
+}
+
+psqlCurrentVersion=$(psql --version | sed -E 's/[^0-9.]//g' | awk -F "." '{print $1 "." $2}')
 psqlCurrentPkgRegexp=$(echo "$dependencyPkgFormats" | sed -E ":a;N;$!ba;s/\n/.*|/g;s/%s/${psqlCurrentVersion}/g")
 psqlCandidateVersion=$(apt-cache policy postgresql | grep -i 'candidate:' | sed -E 's/ *[a-zA-Z]+: *([0-9.]+).*/\1/g')
-psqlCandidatePkgRegexp=$(echo "$dependencyPkgFormats" | sed -E "s/:a;N;$!ba;s/\n/.*|/g;s/%s/${psqlCandidateVersion}/g")
+psqlCandidatePkgRegexp=$(echo "$dependencyPkgFormats" | sed -E ":a;N;$!ba;s/\n/.*|/g;s/%s/${psqlCandidateVersion}/g")
 
 INFO "Current installed version of Postgresql : ${psqlCurrentVersion}"
 INFO "Candidate version of Postgresql :         ${psqlCandidateVersion}"
@@ -110,13 +125,26 @@ INFO_EXEC 'Execute as root this command :'
 aptArg=$(echo ${psqlCandidatePkgs} | sed -E 's/\n/ /g')
 ECHO2 "sudo apt-get update && sudo apt-get upgrade && sudo apt-get install $aptArg"
 
-pressRet
+pause
 
-INFO_PLUS 'The following instructions are about "Hard upgrade" for Postgis support'
-INFO_PLUS 'More details at http://www.postgis.org/docs/postgis_installation.html#hard_upgrade'
-echo
+INFO "You need to backups your databases..."
+INFO "In order to show your currently available database you can execute this command as root :"
+INFO_EXEC "su - postgres -c 'psql --tuples-only -U postgres -c \"\\l\"'"
+INFO "The script backup_postgresql_db.sh helps you to properly backups a database in the directory /var/lib/postgresql/backups/"
+INFO_EXEC "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
 
-pressRet
+pause
+
+POSGIS_NEEDED=$(echo "${psqlCandidatePkgs}" | grep -qi 'postgis' && echo true || echo false)
+
+$POSGIS_NEEDED && {
+    INFO "Need Postgis upgrade detected"
+    INFO_PLUS 'The following instructions are about "Hard upgrade" for Postgis support'
+    INFO_PLUS 'More details at http://www.postgis.org/docs/postgis_installation.html#hard_upgrade'
+    echo
+
+    pause
+}
 
 exit 0
 

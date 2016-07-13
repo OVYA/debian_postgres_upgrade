@@ -128,10 +128,10 @@ ECHO2 "sudo apt-get update && sudo apt-get upgrade && sudo apt-get install $aptA
 pause
 
 INFO "You need to backups your databases..."
-INFO "In order to show your currently available database you can execute this command as root :"
-INFO_EXEC "su - postgres -c 'psql --tuples-only -U postgres -c \"\\l\"'"
-INFO "The script backup_postgresql_db.sh helps you to properly backups a database in the directory /var/lib/postgresql/backups/"
-INFO_EXEC "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
+INFO_EXEC "In order to show your currently available database you can execute this command as root :"
+ECHO2 "su - postgres -c 'psql --tuples-only -U postgres -c \"\\l\"'"
+INFO_EXEC "The script backup_postgresql_db.sh helps you to properly backups a database in the directory /var/lib/postgresql/backups/"
+ECHO2 "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
 
 pause
 

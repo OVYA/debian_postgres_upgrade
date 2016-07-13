@@ -45,6 +45,8 @@ confirm() {
     done
 }
 
+## Init config ######################
+
 PORT=0
 DB_NAME=''
 FILE_PATH=''
@@ -75,6 +77,8 @@ while getopts 'p:d:f:hc' OPT; do
     esac
 done
 
+## Check config ######################
+
 ERROR=false
 MSG='\n'
 
@@ -95,6 +99,7 @@ MSG='\n'
     MSG='Missing pg dump file path\n'
 }
 
+
 $ERROR && {
     usage "$MSG"
 }
@@ -104,7 +109,13 @@ $ERROR && {
     exit 1
 }
 
-# /usr/lib/postgresql/9.4/bin/createdb -p 5433 -O rcv --encoding=UTF8 $i -T template0
+### Starting commands ######################
+[ "$USER" = "postgres" ] || {
+    echo "$0"
+    echo 'This script must be executed by the user postgres.'
+    echo 'Process aborted...'
+    exit 1
+}
 
 CONFIRM=false
 [ $PG_TARGET_VERSION -eq 0 ] && {

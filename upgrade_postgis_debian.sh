@@ -120,7 +120,7 @@ $ERROR && {
 CONFIRM=false
 [ $PG_TARGET_VERSION -eq 0 ] && {
     echo "Detecting target Postgresql version..."
-    PG_TARGET_VERSION=$(locate pg_hba.conf | sed -E 's!.*postgresql/([0-9.]+).*!\1!' | sort -n -t. -k 1,2n | tail -1)
+    PG_TARGET_VERSION=$(pg_lsclusters -h | awk '{print $1}' | sort -n -t. -k 1,2n | tail -1)
     CONFIRM=true
 }
 
@@ -128,6 +128,16 @@ CONFIRM=false
     echo "Detecting target Postgis version..."
     PGIS_TARGET_VERSION=$(locate postgis_restore.pl | sed -E 's/.*postgis-([0-9.]+).*/\1/' | sort -n -t. -k 1,2n | tail -1)
     CONFIRM=true
+}
+
+PGIS_CURRENT_VERSION=$(psql --tuples-only -d ${DB_NAME} -U postgres -c 'SELECT PostGIS_version()' | head -n1 | awk '{print $1}')
+
+[ "$PGIS_CURRENT_VERSION" = "$PGIS_TARGET_VERSION" ] && {
+    echo "The current version of Postgis is the same as the target version : ${PGIS_TARGET_VERSION}"
+    confirm "Do you still wish to continue ?" || {
+        echo 'Aborted...'
+        exit 1
+    }
 }
 
 $CONFIRM && {

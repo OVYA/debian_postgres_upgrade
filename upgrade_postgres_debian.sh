@@ -1,15 +1,20 @@
 #!/bin/bash
 
-usage() {
-    echo "
-Usage: -from
+# Copyright (c) 2016, OVYA <ovya.fr>
 
-Available options:
-   -s N   Description
-   -t     Description
-"
-    exit 1;
-}
+# This program is free software ; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation ; either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY ; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program ; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 pause() {
     printf "Press 'ENTER' to continue or 'CTRL+C' to exit "
@@ -27,7 +32,7 @@ function INFO_PLUS {
 
 
 function INFO_EXEC {
-    echo -e "[\033[01;36m=>\033[00m] ${1}"
+    echo -e "[\033[01;36m=>\033[00m] ${1}\n"
 }
 
 function ECHO2 {
@@ -79,9 +84,13 @@ postgresql-plpython3-%s
 postgresql-pltcl-%s
 postgresql-server-dev-%s'
 
-whiptail --yesno 'This programme guide you to hard upgrade your Postgresql installation.
-It will NOT execute upgrade commands for you but describes the upgrade process.
-You can report any comment via <dev[at]ovya[dot]fr>.' 10 100 \
+whiptail --yesno 'This programme guides you to hard upgrade your Postgresql installation.
+IT WILL NOT EXECUTE UPGRADE COMMANDS for you but describes the upgrade process.
+IF EXECUTED AS user postgres, this script will execute some commands displaying usefull informations.
+
+THIS SCRIPT WILL NEVER MODIFY YOUR INSTALLATION.
+
+You can report any comment via <dev[at]ovya[dot]fr>.' 20 100 \
          --yes-button 'Continue' \
          --no-button 'Cancel' \
          --title "About $0" 'Cancel'
@@ -92,9 +101,11 @@ You can report any comment via <dev[at]ovya[dot]fr>.' 10 100 \
     exit 1
 }
 
+CAN_EXEC=$([[ "$USER" = "root" || "$USER" = "postgres" ]] && echo true || echo false)
+
 psqlCurrentVersion=$(psql --version | sed -E 's/[^0-9.]//g' | awk -F "." '{print $1 "." $2}')
 psqlCurrentPkgRegexp=$(echo "$dependencyPkgFormats" | sed -E ":a;N;$!ba;s/\n/.*|/g;s/%s/${psqlCurrentVersion}/g")
-psqlCandidateVersion=$(apt-cache policy postgresql | grep -i 'candidate:' | sed -E 's/ *[a-zA-Z]+: *([0-9.]+).*/\1/g')
+psqlCandidateVersion=$(LC_ALL='en_US.UTF-8' apt-cache policy postgresql | grep -iE '^ *candidat' | sed -E 's/ *[a-zA-Z]+: *([0-9.]+).*/\1/g')
 psqlCandidatePkgRegexp=$(echo "$dependencyPkgFormats" | sed -E ":a;N;$!ba;s/\n/.*|/g;s/%s/${psqlCandidateVersion}/g")
 
 INFO "Current installed version of Postgresql : ${psqlCurrentVersion}"
@@ -121,71 +132,112 @@ INFO "The folowing package shoud be installed :"
 ECHO2 "$psqlCandidatePkgs"
 
 
-INFO_EXEC 'Execute as root this command :'
+INFO 'Execute as root this command :'
 aptArg=$(echo ${psqlCandidatePkgs} | sed -E 's/\n/ /g')
-ECHO2 "sudo apt-get update && sudo apt-get upgrade && sudo apt-get install $aptArg"
+INFO_EXEC "apt-get update && apt-get upgrade && apt-get install ${aptArg}"
 
 pause
 
 INFO "You need to backups your databases..."
-INFO_EXEC "In order to show your currently available database you can execute this command as root :"
-ECHO2 "su - postgres -c 'psql --tuples-only -U postgres -c \"\\l\"'"
-INFO_EXEC "The script backup_postgresql_db.sh helps you to properly backups a database in the directory /var/lib/postgresql/backups/"
-ECHO2 "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
+
+CMD="psql --tuples-only -U postgres -c \"\\l\""
+$CAN_EXEC && {
+    INFO "The current available databases are :"
+    eval $CMD
+} || {
+    INFO "To show the current available databases, execute this command as postgres :"
+    INFO_EXEC "$CMD"
+}
 
 pause
 
+INFO "The script backup_postgresql_db.sh helps you to properly backups a database in the directory /var/lib/postgresql/backups/"
+INFO_EXEC "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
+
+pause
+
+
+INFO "To make a soft upgrade (not recommanded) of your PostgreSQL installation, you can try to execute these commands as user postgresql"
+INFO_EXEC "/usr/lib/postgresql/${psqlCandidateVersion}/bin/pg_upgrade \\
+    -b /usr/lib/postgresql/${psqlCurrentVersion}/bin \\
+    -B /usr/lib/postgresql/${psqlCandidateVersion}/bin \\
+    -d /var/lib/postgresql/${psqlCurrentVersion}/main/ \\
+    -D /var/lib/postgresql/${psqlCandidateVersion}/main/ \\
+    -O \"-c config_file=/etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf\" \\
+    -o \"-c config_file=/etc/postgresql/${psqlCurrentVersion}/main/postgresql.conf\""
+INFO_EXEC "~/analyze_new_cluster.sh"
+INFO "Uninstall the package postgresql-${psqlCurrentVersion} :"
+INFO_EXEC "apt-get remove postgresql-${psqlCurrentVersion}"
+INFO "Modify the files according to your need (port, login method from 'peer' to 'md5', etc)
+  /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf
+  /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf"
+
+
+CMD="psql --tuples-only -U postgres -c '\du'"
+$CAN_EXEC && {
+    INFO "The current user account are :"
+    eval $CMD
+} || {
+    INFO "To show current user accounts execute the folowing command as postgres :"
+    INFO_EXEC "$CMD"
+}
+
+pause
+
+CMD="pg_lsclusters -h | sort -n -t. -k 1,2n | tail -1 | awk '{print $3}'"
+PG_TARGET_PORT="PORT_${psqlCandidateVersion}"
+
+$CAN_EXEC && {
+    PG_TARGET_PORT=$(pg_lsclusters -h | sort -n -t. -k 1,2n | tail -1 | awk '{print $3}')
+    INFO "The port number of the newer cluster is ${PG_TARGET_PORT}"
+} || {
+    INFO "To show current user accounts execute the folowing command as postgres :"
+    INFO_EXEC "$CMD"
+}
+
+pause
+
+INFO "Create some users. You must be root or postgres. Here an example creating an user"
+INFO_EXEC "su - postgres -c 'psql -p ${PG_TARGET_PORT} -U postgres -c \\
+               \"create role THE_OLD_USER_NAME password \\'THE_PASSWORD\\' nosuperuser createdb nocreaterole inherit login\"'"
+
+pause
+
+INFO "Create the databases in the new Postgresql cluster"
+INFO_EXEC "/usr/lib/postgresql/${psqlCurrentVersion}/bin/createdb -p ${PG_TARGET_PORT} -O THE_OWNER --encoding=UTF8 THE_DB_NAME -T template0"
+
+pause
+
+## Test if posgit update is needed
 POSGIS_NEEDED=$(echo "${psqlCandidatePkgs}" | grep -qi 'postgis' && echo true || echo false)
 
 $POSGIS_NEEDED && {
     INFO "Need Postgis upgrade detected"
     INFO_PLUS 'The following instructions are about "Hard upgrade" for Postgis support'
     INFO_PLUS 'More details at http://www.postgis.org/docs/postgis_installation.html#hard_upgrade'
-    echo
-
-    pause
+    INFO "You can execute the script upgrade_postgis_debian.sh which does it for you :"
+    INFO_EXEC "${CURRENT_DIR}/upgrade_postgis_debian.sh -p ${PG_TARGET_PORT} -d YOUR_DB_NAME -f YOUR_PG_DUMP"
+} || {
+    INFO "Restore your dumps in the new cluster, executing this command as postgresql for each (database, file)"
+    INFO_EXEC "/usr/lib/postgresql/${psqlCurrentVersion}/bin/pg_restore -p ${PG_TARGET_PORT} -e -F c -d YOUR_DATABASE_NAME -v 'YOUR_DUMP_FILE'"
 }
 
-exit 0
+pause
 
-# cd /var/lib/postgresql/temp
+INFO "Cleaning installation with this process :"
+INFO_EXEC "~/analyze_new_cluster.sh"
+INFO_EXEC "service postgres* stop"
+INFO "Modify the files according to your need (port, login method from 'peer' to 'md5', etc)
+  /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf
+  /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf"
+INFO "Uninstall the package postgresql-${psqlCurrentVersion} :"
+INFO_EXEC "apt-get remove postgresql-${psqlCurrentVersion}"
 
-# for i in costespro_production costespro_staging; do
-#     f="/var/lib/postgresql/temp/${i}_$(date -I).bin"
-#     # pg_dump -Fc -b -v -f $f $i;
-#     # /usr/lib/postgresql/9.4/bin/createdb -p 5433 -O rcv --encoding=UTF8 $i -T template0
-#     # /usr/lib/postgresql/9.4/bin/psql -p 5433 -c "GRANT ALL PRIVILEGES ON DATABASE $i TO rcv WITH GRANT OPTION"
-#     # /usr/lib/postgresql/9.4/bin/psql -p 5433 -d $i -c "CREATE EXTENSION postgis;"
-#     # /usr/lib/postgresql/9.4/bin/psql -p 5433 -d $i -c "CREATE EXTENSION postgis_topology;"
-#     perl /usr/share/postgresql/9.4/contrib/postgis-2.1/postgis_restore.pl $f | \
-#         /usr/lib/postgresql/9.4/bin/psql -p 5433 $i 2> ${i}_err.txt
-# done
+pause
 
+echo
+echo "That's all folks !"
 
-# Install postgres 9.3
-sudo apt-get install postgresql-9.3 postgresql-server-dev-9.3 postgresql-contrib-9.3
-
-# Having Postgres 9.2 already, this will create database instance configured to run on port 5433
-
-sudo service postgresql stop
-
-# For pg_upgrade to work, you must switch to postgres user
-sudo su - postgres
-/usr/lib/postgresql/9.3/bin/pg_upgrade -b /usr/lib/postgresql/9.2/bin -B /usr/lib/postgresql/9.3/bin -d /var/lib/postgresql/9.2/main/ -D /var/lib/postgresql/9.3/main/ -O "-c config_file=/etc/postgresql/9.3/main/postgresql.conf" -o "-c config_file=/etc/postgresql/9.2/main/postgresql.conf"
-exit
-
-# Start postgres
-sudo service postgresql start
-
-# Run analyze script
-sudo su - postgres -c "~/analyze_new_cluster.sh"
-
-# Optionally, delete script
-sudo su - postgres -c "~/delete_old_cluster.sh"
-
-# Switch ports, :5432 for 9.3 and :5433 for 9.2
-sudo vim /etc/postgresql/9.2/main/postgresql.conf
-sudo vim /etc/postgresql/9.3/main/postgresql.conf
-
-# Change user login method from `peer` to `md5`
-sudo vim /etc/postgresql/9.3/main/pg_hba.conf
+# Local variables:
+# coding: utf-8
+# End:

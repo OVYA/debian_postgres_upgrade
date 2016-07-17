@@ -174,7 +174,7 @@ pause
 
 INFO "Create some users. You must be the user postgres. Here an example creating an user"
 INFO_EXEC "psql -p ${PG_TARGET_PORT} -U postgres -c \\
-               \"create role THE_OLD_USER_NAME password \\'THE_PASSWORD\\' nosuperuser createdb nocreaterole inherit login\""
+               \"create role THE_OLD_USER_NAME password 'THE_PASSWORD' nosuperuser createdb nocreaterole inherit login\""
 
 pause
 

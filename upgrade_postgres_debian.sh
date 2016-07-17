@@ -126,15 +126,13 @@ $CAN_EXEC && {
     INFO_EXEC "$CMD"
 }
 
-pause
-
 INFO "The script backup_postgresql_db.sh helps you to properly backups a database in the directory /var/lib/postgresql/backups/"
 INFO_EXEC "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
 
 pause
 
 
-INFO "To make a soft upgrade (not recommanded) of your PostgreSQL installation, you can try to execute these commands as user postgresql"
+INFO 'To make a soft upgrade (not recommanded) of your PostgreSQL installation, you can try to execute these commands as user postgresql'
 INFO_EXEC "/usr/lib/postgresql/${psqlCandidateVersion}/bin/pg_upgrade \\
     -b /usr/lib/postgresql/${psqlCurrentVersion}/bin \\
     -B /usr/lib/postgresql/${psqlCandidateVersion}/bin \\
@@ -174,9 +172,9 @@ $CAN_EXEC && {
 
 pause
 
-INFO "Create some users. You must be root or postgres. Here an example creating an user"
-INFO_EXEC "su - postgres -c 'psql -p ${PG_TARGET_PORT} -U postgres -c \\
-               \"create role THE_OLD_USER_NAME password \\'THE_PASSWORD\\' nosuperuser createdb nocreaterole inherit login\"'"
+INFO "Create some users. You must be the user postgres. Here an example creating an user"
+INFO_EXEC "psql -p ${PG_TARGET_PORT} -U postgres -c \\
+               \"create role THE_OLD_USER_NAME password \\'THE_PASSWORD\\' nosuperuser createdb nocreaterole inherit login\""
 
 pause
 

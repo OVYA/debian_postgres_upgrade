@@ -65,7 +65,7 @@ shift $(($OPTIND-1))
 databaseName="$1"
 
 [ "$BACK" = "" ] && {
-    BACK="${BACK_DIR}/${databaseName}.$(date '+%Y-%m-%d:%H-%M-%S').bin"
+    BACK="${BACK_DIR}/${databaseName}.$(date '+%Y-%m-%d_%H-%M-%S').bin"
 }
 
 [  -e $BACK ] && {

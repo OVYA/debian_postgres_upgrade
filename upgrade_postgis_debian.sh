@@ -16,6 +16,9 @@
 # along with this program ; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
+CURRENT_DIR=$(dirname "$0")
+. ${CURRENT_DIR}/functions.rc
+
 usage() {
     echo "This scrit restore the custome pg dump file DUMP_PATH in the database DB_NAME
 Usage: $0 -p PORT_NUM -d DB_NAME -f DUMP_PATH [OPTIONS...]
@@ -24,7 +27,7 @@ Available options:
    -p N   The port number of the new PostgreSQL server version.
    -d S   The database name, it must already exists.
    -f S   The custome binary pg_dump file to upgrade.
-   -c     Create postgis extension in the database for you.
+   -c     Do NOT create postgis extension in the database.
    -v S   Force the target version of postgresql (9.5 or 10.2 etc)
    -g S   Force the target version of postgis (2.1 or 3.0 etc.)
    -h     This help.
@@ -34,23 +37,12 @@ Available options:
     exit 1;
 }
 
-confirm() {
-    declare -l yesno
-    while [ "$yesno" != "y" -a "$yesno" != "n" ] ; do
-	read -p "$(tput setaf 3)$1 (y|n) $(tput sgr0)$(tput bold)" -N 1 yesno
-	echo
-	[ "$yesno" == "n" ] && return 1
-	[ "$yesno" == "y" ] && return 0
-	printf "%sPlease answer with n or y.%s\n" "$(tput setaf 1)" "$(tput sgr0)"
-    done
-}
-
 ## Init config ######################
 
 PORT=0
 DB_NAME=''
 FILE_PATH=''
-CREATE_POSTGIS=false
+CREATE_POSTGIS=true
 PG_TARGET_VERSION=0
 PGIS_TARGET_VERSION=0
 
@@ -66,7 +58,7 @@ while getopts 'p:d:f:hc' OPT; do
             FILE_PATH="$OPTARG"
             ;;
         c) # Create postgis extension
-            CREATE_POSTGIS=true
+            CREATE_POSTGIS=false
             ;;
         h) # short help
             usage
@@ -105,27 +97,27 @@ $ERROR && {
 }
 
 [ -f "$FILE_PATH" ] || {
-    echo "'${FILE_PATH}' does not exits or is not readable"
+    ERROR "'${FILE_PATH}' does not exits or is not readable"
     exit 1
 }
 
 ### Starting commands ######################
 [ "$USER" = "postgres" ] || {
-    echo "$0"
-    echo 'This script must be executed by the user postgres.'
-    echo 'Process aborted...'
+    ERROR "$0"
+    ERROR 'This script must be executed by the user postgres.'
+    ERROR 'Process aborted...'
     exit 1
 }
 
 CONFIRM=false
 [ $PG_TARGET_VERSION -eq 0 ] && {
-    echo "Detecting target Postgresql version..."
+    INFO "Detecting target Postgresql version..."
     PG_TARGET_VERSION=$(pg_lsclusters -h | awk '{print $1}' | sort -n -t. -k 1,2n | tail -1)
     CONFIRM=true
 }
 
 [ $PGIS_TARGET_VERSION -eq 0 ] && {
-    echo "Detecting target Postgis version..."
+    INFO "Detecting target Postgis version..."
     PGIS_TARGET_VERSION=$(locate postgis_restore.pl | sed -E 's/.*postgis-([0-9.]+).*/\1/' | sort -n -t. -k 1,2n | tail -1)
     CONFIRM=true
 }
@@ -133,15 +125,17 @@ CONFIRM=false
 PGIS_CURRENT_VERSION=$(psql --tuples-only -d ${DB_NAME} -U postgres -c 'SELECT PostGIS_version()' | head -n1 | awk '{print $1}')
 
 [ "$PGIS_CURRENT_VERSION" = "$PGIS_TARGET_VERSION" ] && {
-    echo "The current version of Postgis is the same as the target version : ${PGIS_TARGET_VERSION}"
+    INFO "The current version of Postgis is the same as the target version : ${PGIS_TARGET_VERSION}"
     confirm "Do you still wish to continue ?" || {
-        echo 'Aborted...'
+        INFO "You can restore your dump in the new cluster, executing this command as postgresql"
+        INFO_EXEC "/usr/lib/postgresql/${PG_TARGET_VERSION}/bin/pg_restore -p ${PORT} -e -F c -d ${DB_NAME} -v '${FILE_PATH}'"
+        ERROR 'Aborted...'
         exit 1
     }
 }
 
 $CONFIRM && {
-    echo "The folowing TARGET versions will be used :"
+    INFO "The folowing TARGET versions will be used :"
     echo "Postgresql : ${PG_TARGET_VERSION}"
     echo "POstgis    : ${PGIS_TARGET_VERSION}"
     echo
@@ -152,7 +146,7 @@ $CONFIRM && {
 }
 
 PSQL_CMD="/usr/lib/postgresql/${PG_TARGET_VERSION}/bin/psql -p ${PORT}"
-PGIS_CMD="perl /usr/share/postgresql/${PG_TARGET_VERSION}/contrib/postgis-{PGIS_TARGET_VERSION}/postgis_restore.pl"
+PGIS_CMD="perl /usr/share/postgresql/${PG_TARGET_VERSION}/contrib/postgis-${PGIS_TARGET_VERSION}/postgis_restore.pl"
 
 $CREATE_POSTGIS && {
 $PSQL_CMD -d ${DB_NAME} -c "CREATE EXTENSION postgis;"

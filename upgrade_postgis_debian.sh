@@ -137,7 +137,7 @@ PGIS_CURRENT_VERSION=$(psql --tuples-only -d ${DB_NAME} -U postgres -c 'SELECT P
 $CONFIRM && {
     INFO "The folowing TARGET versions will be used :"
     echo "Postgresql : ${PG_TARGET_VERSION}"
-    echo "POstgis    : ${PGIS_TARGET_VERSION}"
+    echo "Postgis    : ${PGIS_TARGET_VERSION}"
     echo
     confirm "Are you agree ?" || {
         echo 'Aborted...'
@@ -155,9 +155,9 @@ $PSQL_CMD -d ${DB_NAME} -c "CREATE EXTENSION postgis_topology;"
 
 ERROR_FILE="/tmp/${DB_NAME}_err.txt"
 
-$PGIS_CMD $FILE_PATH | $PSQL_CMD ${DB_NAME} 2> $ERROR_FILE && echo "Operation done !"
+$PGIS_CMD $FILE_PATH | $PSQL_CMD ${DB_NAME} 2> $ERROR_FILE && INFO "Operation done !"
 
-echo "You can check error messages in the file ${ERROR_FILE}"
+cat "${ERROR_FILE}"
 
 # Local variables:
 # coding: utf-8

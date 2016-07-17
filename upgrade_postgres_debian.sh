@@ -16,31 +16,8 @@
 # along with this program ; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-pause() {
-    printf "Press 'ENTER' to continue or 'CTRL+C' to exit "
-    sed -n q </dev/tty
-    echo
-}
-
-function INFO {
-    echo -e "[\033[01;32m*\033[00m] ${1}"
-}
-
-function INFO_PLUS {
-    echo -e "[\033[01;32m*\033[00m] \033[01;32m${1}\033[00m"
-}
-
-
-function INFO_EXEC {
-    echo -e "[\033[01;36m=>\033[00m] ${1}\n"
-}
-
-function ECHO2 {
-    printf '%s\n' "$@"
-    echo
-}
-
 CURRENT_DIR=$(dirname "$0")
+. ${CURRENT_DIR}/functions.rc
 
 dependencyPkgFormats='postgresql-%s-asn1oid
 postgresql-%s-dbg

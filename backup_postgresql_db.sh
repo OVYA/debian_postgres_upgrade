@@ -16,15 +16,20 @@
 # along with this program ; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
+BACK_DIR=~postgres/backups
+CURRENT_DIR=$(dirname "$0")
+
+. ${CURRENT_DIR}/functions.rc
+
 usage() {
     echo '### DESCRIPTION ###'  >&2
     echo 'This script make a binary dump of a Postgres database using pg_dump'
-    echo 'The default directory where the backups live will be ~postgres/backups/ (/var/lib/postgresql/backups in debian system)'
+    echo "The directory where the backups live will be ${BACK_DIR}"
     echo 'Root can list the databases with the command : '
     echo "su - postgres -c 'psql --tuples-only -U postgres -c \"\\l\"'"
     echo
     echo '### USAGE ###'  >&2
-    echo "$0 [-o output-file-path] database-name-to-backup"  >&2
+    echo "$0 [-o output-file-name] database-name-to-backup"  >&2
     exit 1
 }
 
@@ -32,8 +37,8 @@ usage() {
     usage;
 }
 
-if [ "$(id -u)" != "0" ]; then
-    echo "This script must be run as root" 1>&2
+if [ "$USER" != "postgres" ]; then
+    ERROR 'This script must be run as postgres user.'
     exit 1
 fi
 
@@ -41,7 +46,7 @@ while getopts o:h option
 do
     case $option in
         o)
-            BACK=~postgres/backups/${OPTARG}
+            BACK="${BACK_DIR}/${OPTARG}"
             ;;
         h)
             usage
@@ -51,20 +56,26 @@ done
 
 shift $(($OPTIND-1))
 
+[ -e $BACK_DIR ] || {
+    INFO "Creating directory '${BACK_DIR}'"
+    mkdir -p "$BACK_DIR"
+    chown postgres "$BACK_DIR"
+}
+
 databaseName="$1"
 
 [ "$BACK" = "" ] && {
-    BACK=~postgres/backups/${databaseName}.$(date '+%Y-%m-%d:%H-%M-%S').bin
+    BACK="${BACK_DIR}/${databaseName}.$(date '+%Y-%m-%d:%H-%M-%S').bin"
 }
 
 [  -e $BACK ] && {
-    echo "The file ${BACK} exists" >&2
-    echo 'Remove or rename it before proceed' >&2
+    ERROR "The file ${BACK} exists"
+    ERROR 'Remove or rename it before proceed'
     exit 1
 }
 
-su - postgres -c "pg_dump -v -F c -f $BACK $databaseName" && {
-    echo "The database ${databaseName} was backuped in ${BACK}"
+pg_dump -v -F c -U postgres -f "$BACK" "$databaseName" && {
+    INFO "The database ${databaseName} was backuped in ${BACK}"
 }
 
 # Local variables:

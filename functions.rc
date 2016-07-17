@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Copyright (c) 2016, OVYA <ovya.fr>
+
+# This program is free software ; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation ; either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY ; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program ; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+pause() {
+    echo '==============='
+    printf "Press 'ENTER' to continue or 'CTRL+C' to exit "
+    sed -n q </dev/tty
+    echo '==============='
+    echo
+}
+
+function INFO {
+    echo -e "[\033[01;32m*\033[00m] ${1}"
+}
+
+function ERROR {
+    echo -e "[\033[1;31m!\033[00m] ${1}" >&2
+}
+
+function INFO_PLUS {
+    echo -e "[\033[01;32m*\033[00m] \033[01;32m${1}\033[00m"
+}
+
+
+function INFO_EXEC {
+    echo -e "[\033[01;36m=>\033[00m] ${1}\n"
+}
+
+function ECHO2 {
+    printf '%s\n' "$@"
+    echo
+}
+
+_RED=$'\033[1;31m'
+_NO_COLOR=$'\033[00m'
+
+function confirm {
+    declare -l yesno
+    while [ "$yesno" != "y" -a "$yesno" != "n" ] ; do
+	read -p "${_RED}${1}${_NO_COLOR} (y|n) " -N 1 yesno
+	echo
+	[ "$yesno" == "n" ] && return 1
+	[ "$yesno" == "y" ] && return 0
+
+	echo 'Please answer with n or y.\n'
+    done
+}

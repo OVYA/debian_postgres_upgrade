@@ -111,7 +111,7 @@ ECHO2 "$psqlCandidatePkgs"
 
 INFO 'Execute as root this command :'
 aptArg=$(echo ${psqlCandidatePkgs} | sed -E 's/\n/ /g')
-INFO_EXEC "apt-get update && apt-get upgrade && apt-get install ${aptArg}"
+INFO_EXEC_NL "apt-get update && apt-get upgrade && apt-get install ${aptArg}"
 
 pause
 
@@ -123,26 +123,25 @@ $CAN_EXEC && {
     eval $CMD
 } || {
     INFO "To show the current available databases, execute this command as postgres :"
-    INFO_EXEC "$CMD"
+    INFO_EXEC_NL "$CMD"
 }
 
 INFO "The script backup_postgresql_db.sh helps you to properly backups a database in the directory /var/lib/postgresql/backups/"
-INFO_EXEC "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
+INFO_EXEC_NL "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
 
 pause
 
 
 INFO 'To make a soft upgrade (not recommanded) of your PostgreSQL installation, you can try to execute these commands as user postgresql'
-INFO_EXEC "/usr/lib/postgresql/${psqlCandidateVersion}/bin/pg_upgrade \\
+INFO_EXEC_NL "/usr/lib/postgresql/${psqlCandidateVersion}/bin/pg_upgrade \\
     -b /usr/lib/postgresql/${psqlCurrentVersion}/bin \\
     -B /usr/lib/postgresql/${psqlCandidateVersion}/bin \\
     -d /var/lib/postgresql/${psqlCurrentVersion}/main/ \\
     -D /var/lib/postgresql/${psqlCandidateVersion}/main/ \\
     -O \"-c config_file=/etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf\" \\
     -o \"-c config_file=/etc/postgresql/${psqlCurrentVersion}/main/postgresql.conf\""
-INFO_EXEC "~/analyze_new_cluster.sh"
 INFO "Uninstall the package postgresql-${psqlCurrentVersion} :"
-INFO_EXEC "apt-get remove postgresql-${psqlCurrentVersion}"
+INFO_EXEC_NL "apt-get remove postgresql-${psqlCurrentVersion}"
 INFO "Modify the files according to your need (port, login method from 'peer' to 'md5', etc)
   /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf
   /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf"
@@ -154,7 +153,7 @@ $CAN_EXEC && {
     eval $CMD
 } || {
     INFO "To show current user accounts execute the folowing command as postgres :"
-    INFO_EXEC "$CMD"
+    INFO_EXEC_NL "$CMD"
 }
 
 pause
@@ -167,19 +166,19 @@ $CAN_EXEC && {
     INFO "The port number of the newer cluster is ${PG_TARGET_PORT}"
 } || {
     INFO "To show current user accounts execute the folowing command as postgres :"
-    INFO_EXEC "$CMD"
+    INFO_EXEC_NL "$CMD"
 }
 
 pause
 
 INFO "Create some users. You must be the user postgres. Here an example creating an user"
-INFO_EXEC "psql -p ${PG_TARGET_PORT} -U postgres -c \\
+INFO_EXEC_NL "psql -p ${PG_TARGET_PORT} -U postgres -c \\
                \"create role THE_OLD_USER_NAME password 'THE_PASSWORD' nosuperuser createdb nocreaterole inherit login\""
 
 pause
 
 INFO "Create the databases in the new Postgresql cluster"
-INFO_EXEC "/usr/lib/postgresql/${psqlCurrentVersion}/bin/createdb -p ${PG_TARGET_PORT} -O THE_OWNER --encoding=UTF8 THE_DB_NAME -T template0"
+INFO_EXEC_NL "/usr/lib/postgresql/${psqlCurrentVersion}/bin/createdb -p ${PG_TARGET_PORT} -O THE_OWNER --encoding=UTF8 THE_DB_NAME -T template0"
 
 pause
 
@@ -191,22 +190,33 @@ $POSGIS_NEEDED && {
     INFO_PLUS 'The following instructions are about "Hard upgrade" for Postgis support'
     INFO_PLUS 'More details at http://www.postgis.org/docs/postgis_installation.html#hard_upgrade'
     INFO "You can execute the script upgrade_postgis_debian.sh which does it for you :"
-    INFO_EXEC "${CURRENT_DIR}/upgrade_postgis_debian.sh -p ${PG_TARGET_PORT} -d YOUR_DB_NAME -f YOUR_PG_DUMP"
+    INFO_EXEC_NL "${CURRENT_DIR}/upgrade_postgis_debian.sh -p ${PG_TARGET_PORT} -d YOUR_DB_NAME -f YOUR_PG_DUMP"
 } || {
     INFO "Restore your dumps in the new cluster, executing this command as postgresql for each (database, file)"
-    INFO_EXEC "/usr/lib/postgresql/${psqlCurrentVersion}/bin/pg_restore -p ${PG_TARGET_PORT} -e -F c -d YOUR_DATABASE_NAME -v 'YOUR_DUMP_FILE'"
+    INFO_EXEC_NL "/usr/lib/postgresql/${psqlCurrentVersion}/bin/pg_restore -p ${PG_TARGET_PORT} -e -F c -d YOUR_DATABASE_NAME -v 'YOUR_DUMP_FILE'"
 }
 
 pause
 
 INFO "Cleaning installation with this process :"
-INFO_EXEC "~/analyze_new_cluster.sh"
-INFO_EXEC "service postgres* stop"
+INFO_EXEC_NL "service postgres stop"
 INFO "Modify the files according to your need (port, login method from 'peer' to 'md5', etc)
   /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf
   /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf"
+INFO "OR execute these commands as root :"
+INFO_EXEC "mv /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf.dist"
+INFO_EXEC "mv /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf.dist"
+INFO_EXEC "cp /etc/postgresql/${psqlCurrentVersion}/main/pg_hba.conf /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf"
+INFO_EXEC "cp /etc/postgresql/${psqlCurrentVersion}/main/postgresql.conf /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf"
+
+psqlCurrentRegexpVersion=$(echo $psqlCurrentVersion | sed -e 's/[]\/$*.^|[]/\\&/g')
+
+INFO_EXEC_NL "sed -i -e 's/${psqlCurrentRegexpVersion}/${psqlCandidateVersion}/g' /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf"
+
+pause
+
 INFO "Uninstall the package postgresql-${psqlCurrentVersion} :"
-INFO_EXEC "apt-get remove postgresql-${psqlCurrentVersion}"
+INFO_EXEC_NL "apt-get remove postgresql-${psqlCurrentVersion}"
 
 pause
 

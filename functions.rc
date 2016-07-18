@@ -38,8 +38,14 @@ function INFO_PLUS {
 
 
 function INFO_EXEC {
-    echo -e "[\033[01;36m=>\033[00m] ${1}\n"
+    echo -e "[\033[01;36m=>\033[00m] ${1}"
 }
+
+function INFO_EXEC_NL {
+    INFO_EXEC "$1\n"
+}
+
+
 
 function ECHO2 {
     printf '%s\n' "$@"

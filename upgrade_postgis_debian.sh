@@ -115,7 +115,7 @@ $ERROR && {
 }
 
 CONFIRM=false
-[ $PG_TARGET_VERSION -eq 0 ] && {
+[ "$PG_TARGET_VERSION" = "0" ] && {
     INFO "Detecting target Postgresql version..."
     PG_TARGET_VERSION=$(pg_lsclusters -h | awk '{print $1}' | sort -n -t. -k 1,2n | tail -1)
     CONFIRM=true

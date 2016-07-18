@@ -48,7 +48,7 @@ CREATE_POSTGIS=true
 PG_TARGET_VERSION=0
 PGIS_TARGET_VERSION=0
 
-while getopts 'p:d:f:hc' OPT; do
+while getopts 'p:d:f:g:hc' OPT; do
     case "$OPT" in
         p) # Port
             PORT="$OPTARG"

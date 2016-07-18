@@ -20,13 +20,15 @@ CURRENT_DIR=$(dirname "$0")
 . ${CURRENT_DIR}/functions.rc
 
 usage() {
-    echo "This scrit restore the custome pg dump file DUMP_PATH in the database DB_NAME
+    echo "This scrit restore the custom pg dump file DUMP_PATH in the database DB_NAME when Postgist extension need a hard upgraded.
+Based on the process described here http://www.postgis.org/docs/postgis_installation.html#hard_upgrade
+
 Usage: $0 -p PORT_NUM -d DB_NAME -f DUMP_PATH [OPTIONS...]
 
 Available options:
    -p N   The port number of the new PostgreSQL server version.
    -d S   The database name, it must already exists.
-   -f S   The custome binary pg_dump file to upgrade.
+   -f S   The custom binary pg_dump file to upgrade.
    -c     Do NOT create postgis extension in the database.
    -v S   Force the target version of postgresql (9.5 or 10.2 etc)
    -g S   Force the target version of postgis (2.1 or 3.0 etc.)

@@ -25,8 +25,8 @@ usage() {
     echo '### DESCRIPTION ###'  >&2
     echo 'This script make a binary dump of a Postgres database using pg_dump'
     echo "The directory where the backups live will be ${BACK_DIR}"
-    echo 'Root can list the databases with the command : '
-    echo "su - postgres -c 'psql --tuples-only -U postgres -c \"\\l\"'"
+    echo 'You can list the databases with the command executed as postgres : '
+    echo "psql --tuples-only -U postgres -c \"\\l\""
     echo
     echo '### USAGE ###'  >&2
     echo "$0 [-o output-file-name] database-name-to-backup"  >&2
@@ -36,11 +36,6 @@ usage() {
 [ $# -lt 1 ] && {
     usage;
 }
-
-if [ "$USER" != "postgres" ]; then
-    ERROR 'This script must be run as postgres user.'
-    exit 1
-fi
 
 while getopts o:h option
 do
@@ -53,6 +48,11 @@ do
             ;;
     esac
 done
+
+if [ "$USER" != "postgres" ]; then
+    ERROR 'This script must be run as postgres user.'
+    exit 1
+fi
 
 shift $(($OPTIND-1))
 

@@ -45,8 +45,6 @@ function INFO_EXEC_NL {
     INFO_EXEC "$1\n"
 }
 
-
-
 function ECHO2 {
     printf '%s\n' "$@"
     echo
@@ -65,4 +63,10 @@ function confirm {
 
 	echo 'Please answer with n or y.\n'
     done
+}
+
+function ABORT {
+    ERROR "$1"
+    ERROR "Process aborted !"
+    exit 1
 }

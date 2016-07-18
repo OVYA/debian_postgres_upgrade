@@ -85,6 +85,27 @@ psqlCurrentPkgRegexp=$(echo "$dependencyPkgFormats" | sed -E ":a;N;$!ba;s/\n/.*|
 psqlCandidateVersion=$(LC_ALL='en_US.UTF-8' apt-cache policy postgresql | grep -iE '^ *candidat' | sed -E 's/ *[a-zA-Z]+: *([0-9.]+).*/\1/g')
 psqlCandidatePkgRegexp=$(echo "$dependencyPkgFormats" | sed -E ":a;N;$!ba;s/\n/.*|/g;s/%s/${psqlCandidateVersion}/g")
 
+[ "$psqlCurrentVersion" = "$psqlCandidateVersion" ] && {
+    INFO "Can not find dpkg candidate version."
+    INFO "Trying to find cluster version..."
+
+    _VERSIONS=$(pg_lsclusters -h | awk '{print $1}' | sort -n -t. -k 1,2n | tail -2)
+    psqlCurrentVersion=$(echo $_VERSIONS | awk '{print $1}')
+    psqlCandidateVersion=$(echo $_VERSIONS | awk '{print $2}')
+
+    [ "$psqlCurrentVersion" = "$psqlCandidateVersion" ] && {
+        ABORT "No new version of PostgreSQL found..."
+    }
+}
+
+echo $psqlCurrentVersion | grep -Eq '[0-9.]+' || {
+    ABORT "Wrong current version of PostgreSQL found..."
+}
+
+echo $psqlCandidateVersion | grep -Eq '[0-9.]+' || {
+    ABORT "Wrong candidate version of PostgreSQL found..."
+}
+
 INFO "Current installed version of Postgresql : ${psqlCurrentVersion}"
 INFO "Candidate version of Postgresql :         ${psqlCandidateVersion}"
 echo

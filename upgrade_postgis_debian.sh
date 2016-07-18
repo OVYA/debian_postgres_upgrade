@@ -59,6 +59,9 @@ while getopts 'p:d:f:hc' OPT; do
         f) # file path
             FILE_PATH="$OPTARG"
             ;;
+        g)
+            PG_TARGET_VERSION="$OPTARG"
+            ;;
         c) # Create postgis extension
             CREATE_POSTGIS=false
             ;;

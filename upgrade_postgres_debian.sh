@@ -153,21 +153,6 @@ INFO_EXEC_NL "${CURRENT_DIR}/backup_postgresql_db.sh YOUR_DATA_BASE_NAME"
 pause
 
 
-INFO 'To make a soft upgrade (not recommanded) of your PostgreSQL installation, you can try to execute these commands as user postgresql'
-INFO_EXEC_NL "/usr/lib/postgresql/${psqlCandidateVersion}/bin/pg_upgrade \\
-    -b /usr/lib/postgresql/${psqlCurrentVersion}/bin \\
-    -B /usr/lib/postgresql/${psqlCandidateVersion}/bin \\
-    -d /var/lib/postgresql/${psqlCurrentVersion}/main/ \\
-    -D /var/lib/postgresql/${psqlCandidateVersion}/main/ \\
-    -O \"-c config_file=/etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf\" \\
-    -o \"-c config_file=/etc/postgresql/${psqlCurrentVersion}/main/postgresql.conf\""
-INFO "Uninstall the package postgresql-${psqlCurrentVersion} :"
-INFO_EXEC_NL "apt-get remove postgresql-${psqlCurrentVersion}"
-INFO "Modify the files according to your need (port, login method from 'peer' to 'md5', etc)
-  /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf
-  /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf"
-
-
 CMD="psql --tuples-only -U postgres -c '\du'"
 $CAN_EXEC && {
     INFO "The current user account are :"
@@ -199,7 +184,7 @@ INFO_EXEC_NL "psql -p ${PG_TARGET_PORT} -U postgres -c \\
 pause
 
 INFO "Create the databases in the new Postgresql cluster"
-INFO_EXEC_NL "/usr/lib/postgresql/${psqlCurrentVersion}/bin/createdb -p ${PG_TARGET_PORT} -O THE_OWNER --encoding=UTF8 THE_DB_NAME -T template0"
+INFO_EXEC_NL "/usr/lib/postgresql/${psqlCandidateVersion}/bin/createdb -p ${PG_TARGET_PORT} -O THE_OWNER --encoding=UTF8 THE_DB_NAME -T template0"
 
 pause
 

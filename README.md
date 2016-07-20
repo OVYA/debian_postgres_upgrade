@@ -29,7 +29,7 @@ There are three scripts useful for hard upgrade :
 
 * `upgrade_postgis_debian.sh`
   
-  This script restore safely a custom pg dump file when Postgist extension need a hard upgraded.
+  This script restore safely a custom pg dump file when Postgist extension need a hard upgrade.
   
   Based on the process described [here](http://www.postgis.org/docs/postgis_installation.html#hard_upgrade)
   

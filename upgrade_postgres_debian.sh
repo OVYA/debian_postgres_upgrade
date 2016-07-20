@@ -239,8 +239,10 @@ INFO_EXEC_NL "sed -i -e 's/${psqlCurrentRegexpVersion}/${psqlCandidateVersion}/g
 
 pause
 
-INFO "Uninstall the package postgresql-${psqlCurrentVersion} :"
-INFO_EXEC_NL "apt-get remove postgresql-${psqlCurrentVersion}"
+INFO "Uninstall the package postgresql-${psqlCurrentVersion}. As root :"
+INFO_EXEC "apt-get remove postgresql-${psqlCurrentVersion}"
+INFO "Restart postgresql-${psqlCandidateVersion}. As root :"
+INFO_EXEC_NL "service postgresql@${psqlCandidateVersion}-main start"
 
 pause
 

@@ -61,7 +61,19 @@ postgresql-plpython3-%s
 postgresql-pltcl-%s
 postgresql-server-dev-%s'
 
-whiptail --yesno 'This programme guides you to hard upgrade your Postgresql installation.
+NB_CLUSTER=$(pg_lsclusters -h | wc -l)
+
+[ $NB_CLUSTER -gt 2 ] && {
+    ABORT "Too many clusters. This script is not suitable for more than two clusters, the older and the newer."
+}
+
+[ $NB_CLUSTER -lt 1 ] && {
+    ABORT "No PostgreSQL cluster found. This script is only useful to upgade an existing pg cluster."
+}
+
+
+whiptail --yesno 'This programm guides you to hard upgrade your Postgresql installation.
+It is not suitable for more than two clusters, the older and the newer.
 IT WILL NOT EXECUTE UPGRADE COMMANDS for you but describes the upgrade process.
 IF EXECUTED AS user postgres, this script will execute some commands displaying usefull informations.
 
@@ -133,6 +145,11 @@ ECHO2 "$psqlCandidatePkgs"
 INFO 'Execute as root this command :'
 aptArg=$(echo ${psqlCandidatePkgs} | sed -E 's/\n/ /g')
 INFO_EXEC_NL "apt-get update && apt-get upgrade && apt-get install ${aptArg}"
+
+pause
+
+INFO "The process described below is related to an hard upgrade only."
+INFO "To make a soft update, continue the process with the script upgrade_postgres_debian_soft.sh"
 
 pause
 
@@ -214,6 +231,7 @@ INFO_EXEC "mv /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf /etc/post
 INFO_EXEC "mv /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf.dist"
 INFO_EXEC "cp /etc/postgresql/${psqlCurrentVersion}/main/pg_hba.conf /etc/postgresql/${psqlCandidateVersion}/main/pg_hba.conf"
 INFO_EXEC "cp /etc/postgresql/${psqlCurrentVersion}/main/postgresql.conf /etc/postgresql/${psqlCandidateVersion}/main/postgresql.conf"
+INFO_EXEC "chown postgres /etc/postgresql/${psqlCurrentVersion}/main/{postgresql,pg_hba}.conf"
 
 psqlCurrentRegexpVersion=$(echo $psqlCurrentVersion | sed -e 's/[]\/$*.^|[]/\\&/g')
 

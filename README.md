@@ -42,6 +42,7 @@ Clone this repository on your computer, in the directory `/opt` for example :
 ```bash
 cd /opt
 git clone https://github.com/OVYA/debian_postgres_upgrade.git
+cd debian_postgres_upgrade && chmod +x *.sh
 ```
 
 Add the directory `/opt/debian_postgres_upgrade` to your environment
